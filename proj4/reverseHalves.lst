@@ -1,0 +1,85 @@
+     1                                  ; Hamin Han, XK26538, haminh1@gl.umbc.edu
+     2                                  ; reverseHalves.asm
+     3                                  ; Contains the reverseHalves subroutine
+     4                                  
+     5                                  	section .data
+     6                                  
+     7 00000000 0000                    char_buff:	db	0,0	; Character buffer that will be used to print out the string
+     8                                  	
+     9                                  	section .text
+    10                                  	global reverseHalves
+    11                                  
+    12                                  reverseHalves:		        ; Parameters: rdi has the pointer to string, rsi has length of string
+    13 00000000 55                      	push	rbp		; Setting up the subroutine stack frame
+    14 00000001 4889E5                  	mov	rbp, rsp	
+    15                                  
+    16 00000004 4989FC                  	mov	r12, rdi	; Getting the values from the parameters
+    17 00000007 4989F7                  	mov	r15, rsi
+    18                                  	
+    19 0000000A 4D89E0                  	mov     r8, r12	    	; r8 points to the beginning of the string
+    20 0000000D 4D89FE                  	mov     r14, r15 	; Copy of the length of the string in r14
+    21 00000010 49D1EF                  	shr     r15, 1		; Dividing the length of the string in half
+    22 00000013 4D31C9                  	xor     r9, r9		; r9 will be the Counter value (set to 0)
+    23                                  
+    24                                  first_push:			; While Counter < # of characters in first half
+    25 00000016 4D31D2                  	xor     r10, r10 	; Clearing up r10 which will hold the character
+    26 00000019 458A10                  	mov     r10b, [r8] 	; r10b holds the single character	
+    27                                  
+    28 0000001C 4152                    	push    r10		; The character is pushed on the stack
+    29 0000001E 49FFC0                  	inc     r8		; r8 points to the next character
+    30 00000021 49FFC1                  	inc     r9		; Incrementing the counter value
+    31 00000024 4D39F9                  	cmp     r9, r15		; Checking if it looped enough times
+    32 00000027 7CED                    	jl      first_push 	; If counter < # of characters in the first half, loop back
+    33                                  
+    34 00000029 4D31C9                  	xor     r9, r9		; Counter is reset to 0
+    35                                  
+    36                                  first_pop:			; While Counter < # of characters in first half
+    37 0000002C 415A                    	pop     r10		; Pop off from the stack and put it on r10
+    38                                  
+    39 0000002E 44881425[00000000]      	mov     [char_buff], r10b ; Using char_buff to store the ASCII value of the character	
+    40 00000036 48BE-                   	mov     rsi, char_buff
+    40 00000038 [0000000000000000] 
+    41 00000040 BA01000000              	mov     rdx, 1
+    42 00000045 B801000000              	mov	rax, 1
+    43 0000004A BF01000000              	mov	rdi, 1
+    44 0000004F 0F05                    	syscall			; Printing out each individual characters
+    45                                  
+    46 00000051 49FFC1                  	inc     r9
+    47 00000054 4D39F9                  	cmp     r9, r15
+    48 00000057 7CD3                    	jl      first_pop
+    49                                  
+    50                                  setup:
+    51 00000059 4D31C9                  	xor     r9,r9		; Counter is reset to 0	
+    52 0000005C 4D89E0                  	mov     r8, r12 	; r8 gets the pointer to str_buff
+    53 0000005F 4D01F8                  	add     r8, r15		; r8 points to the middle of the string
+    54 00000062 4D29FE                  	sub     r14, r15 	; r14 contains the # of characters in the second half
+    55                                  
+    56                                  second_push:			; While Counter < # of characters in second half
+    57 00000065 4D31D2                  	xor     r10, r10 	; Clearing up r10 which will hold the character
+    58 00000068 458A10                  	mov     r10b, [r8] 	; r10b holds the single character
+    59                                  
+    60 0000006B 4152                    	push    r10		; The character is pushed on the stack
+    61 0000006D 49FFC0                  	inc     r8		; r8 points to the next character
+    62 00000070 49FFC1                  	inc     r9		; Incrementing the counter value
+    63 00000073 4D39F1                  	cmp     r9, r14		; Checking if it looped enough times
+    64 00000076 7CED                    	jl      second_push 	; If counter < # of characters in the second half, loop back
+    65                                  
+    66 00000078 4D31C9                  	xor     r9, r9		; Counter is reset to 0
+    67                                  
+    68                                  second_pop:			; While Counter < # of characters in second half
+    69 0000007B 415A                    	pop     r10		; Pop off from the stack and put it on r10
+    70                                  
+    71 0000007D 44881425[00000000]      	mov     [char_buff], r10b ; Using char_buff to store the ASCII value of the character
+    72 00000085 48BE-                   	mov     rsi, char_buff
+    72 00000087 [0000000000000000] 
+    73 0000008F BA01000000              	mov     rdx, 1
+    74 00000094 B801000000              	mov	rax, 1
+    75 00000099 BF01000000              	mov	rdi, 1
+    76 0000009E 0F05                    	syscall			; Printing out each individual characters
+    77                                  
+    78 000000A0 49FFC1                  	inc     r9		; Incrementing the counter value
+    79 000000A3 4D39F1                  	cmp     r9, r14		; Checking if it looped enough times
+    80 000000A6 7CD3                    	jl      second_pop 	; If Counter < # of characters in second half
+    81                                  
+    82 000000A8 5D                      	pop	rbp		; Ending subroutine stack frame
+    83 000000A9 C3                      	ret

@@ -1,0 +1,87 @@
+     1                                  ; Hamin Han, XK26538, haminh1@gl.umbc.edu
+     2                                  ; scramble.asm
+     3                                  ;Contains the subroutine to scramble a string
+     4                                  
+     5                                  	section .data
+     6                                  
+     7 00000000 0000                    char_buff:	db	0,0	; Character buffer that will be used to printing out the transformed string
+     8                                  	
+     9                                  	section .text
+    10                                  	global scramble
+    11                                  
+    12                                  scramble:			; Parameters: rdi has the pointer to string, rsi has length of string
+    13 00000000 55                      	push	rbp		; Setting up the subroutine stack frame
+    14 00000001 4889E5                  	mov 	rbp, rsp
+    15                                  
+    16 00000004 4989FC                  	mov	r12, rdi	; Getting the values from the parameters
+    17 00000007 4989F7                  	mov	r15, rsi
+    18                                  	
+    19 0000000A 4D31D2                  	xor     r10, r10 	; r10 will be the Counter value (set to 0)
+    20 0000000D 4D89FE                  	mov     r14, r15 	; Copy of the length of the string in r14
+    21 00000010 4D89FD                  	mov     r13, r15 	; Copy of the length of the string in r13
+    22 00000013 49D1EF                  	shr     r15, 1		; Dividing the length of the string in half, value of r15 = # of characters in first half
+    23 00000016 4D89FE                  	mov     r14, r15 	; r14 contains the + of characters in the second half (+1 for new line)
+    24                                  	
+    25 00000019 4D89E0                  	mov     r8, r12 	; r8 points to the beginning of the string
+    26 0000001C 4D89E1                  	mov     r9, r12 	; r9 points to the beginning of the string initially
+    27                                  
+    28 0000001F 4D01F9                  	add     r9, r15		; r9 points to the middle of the string
+    29                                  
+    30 00000022 4831D2                  	xor	rdx, rdx	; Set rdx before division
+    31 00000025 4C89F8                  	mov	rax, r15	; Numerator = rax = r15 (half of string length)
+    32 00000028 BB02000000              	mov	rbx, 2		; Denominator = rbx = 2
+    33 0000002D 48F7F3                  	div	rbx		; rax = rax /2 and rdx = remainder
+    34                                  
+    35 00000030 4883FA00                	cmp	rdx, 0		; Check if even
+    36 00000034 7403                    	je 	prep_push	; If even jump to prep_push
+    37 00000036 49FFC1                  	inc	r9		; Else increment r9
+    38                                  	
+    39                                  prep_push:			; While Counter < # of characters in second half
+    40 00000039 4D31DB                  	xor     r11, r11 	; Clearing up r11 which will hold the character
+    41 0000003C 458A19                  	mov     r11b, [r9] 	; r11b holds the single character
+    42                                  
+    43 0000003F 4153                    	push    r11		; The character is pushed on the stack
+    44 00000041 49FFC1                  	inc     r9		; r9 points to the next character
+    45 00000044 49FFC2                  	inc     r10		; Incrementing the counter value
+    46 00000047 4D39F2                  	cmp     r10, r14 	; Checking if it looped enough times
+    47 0000004A 75ED                    	jne      prep_push 	; If Counter < # of characters in the second half, loop back
+    48                                  
+    49 0000004C 4D31D2                  	xor     r10, r10
+    50                                  
+    51                                  front:
+    52 0000004F 4D31DB                  	xor     r11, r11 	; Clearing up r11 which will hold the character
+    53 00000052 458A18                  	mov     r11b, [r8] 	; r11b sroes the single character
+    54                                  
+    55 00000055 44881C25[00000000]      	mov     [char_buff], r11b ; Using char_buff to store the ASCII value of the character
+    56 0000005D 48BE-                   	mov     rsi, char_buff
+    56 0000005F [0000000000000000] 
+    57 00000067 BA01000000              	mov     rdx, 1
+    58 0000006C B801000000              	mov	rax, 1
+    59 00000071 BF01000000              	mov	rdi, 1
+    60 00000076 0F05                    	syscall    		; Printing out each individual characters
+    61                                  
+    62 00000078 49FFC2                  	inc     r10		; Incrementing the counter value
+    63 0000007B 4D39EA                  	cmp     r10, r13 	; Checking if it looped enough times
+    64 0000007E 7D32                    	jge     leave		; If Counter >= # of characters in the entire string, exit
+    65 00000080 49FFC0                  	inc     r8		; Moving the pointer to the next address
+    66                                  
+    67                                  back:
+    68 00000083 415B                    	pop     r11
+    69                                  
+    70 00000085 44881C25[00000000]      	mov     [char_buff], r11b ; Using char_buff to store the ASCII value of the character
+    71 0000008D 48BE-                   	mov     rsi, char_buff
+    71 0000008F [0000000000000000] 
+    72 00000097 BA01000000              	mov     rdx, 1
+    73 0000009C B801000000              	mov	rax, 1
+    74 000000A1 BF01000000              	mov	rdi, 1
+    75 000000A6 0F05                    	syscall   		; Printing out each individual characters
+    76                                  
+    77 000000A8 49FFC2                  	inc     r10		; Incrementing the counter value
+    78 000000AB 4D39EA                  	cmp     r10, r13 	; Checking if it looped enough times
+    79 000000AE 7D02                    	jge     leave		; If Counter >= # of characters in the entire string, exit
+    80                                  
+    81 000000B0 EB9D                    	jmp     front
+    82                                  	
+    83                                  leave:
+    84 000000B2 5D                      	pop	rbp		; Ending subroutine stack frame
+    85 000000B3 C3                      	ret

@@ -1,0 +1,193 @@
+     1                                  ; Hamin Han, XK26538, haminh1@gl.umbc.edu
+     2                                  ; Main assembly file that calls the subroutines
+     3                                  ; The program first displays a menu with the options that the user can choose
+     4                                  ; "d" or "D" shows the current 10 messages to the user (initially set to "I love assembly language and CMSC 313 is my favorite class at UMBC!"
+     5                                  ; "u" or "U" gets a new message from the user and replaces a message from the array
+     6                                  ; "f" or "F" replaces a string sequence from one of the messages
+     7                                  ; "t" or "T" does a random transformation on the text, either reverseHalves or scramble
+     8                                  ; "e" or "E" exits the program
+     9                                  
+    10                                  extern scanf
+    11                                  extern printf	
+    12                                  extern display
+    13                                  extern randomNumber
+    14                                  extern stringLength
+    15                                  extern reverseHalves
+    16                                  	
+    17                                  	section .data		; Initialized data
+    18                                  
+    19 00000000 642F443A2044697370-     menu_choices:	db 	"d/D: Display", 10, "u/U: Update", 10, "f/F: Find & Replace", 10, "t/T: Transform", 10, "e/E: Exit", 10, "-------------", 10, "Enter your choice:", 10, 0 ; Menu prompt
+    19 00000009 6C61790A752F553A20-
+    19 00000012 5570646174650A662F-
+    19 0000001B 463A2046696E642026-
+    19 00000024 205265706C6163650A-
+    19 0000002D 742F543A205472616E-
+    19 00000036 73666F726D0A652F45-
+    19 0000003F 3A20457869740A2D2D-
+    19 00000048 2D2D2D2D2D2D2D2D2D-
+    19 00000051 2D2D0A456E74657220-
+    19 0000005A 796F75722063686F69-
+    19 00000063 63653A0A00         
+    20 00000068 49206C6F7665206173-     og_msg:		db 	"I love assembly language and CMSC 313 is my favorite class at UMBC!", 10, 0 ; Initial message that will be stored in the array
+    20 00000071 73656D626C79206C61-
+    20 0000007A 6E677561676520616E-
+    20 00000083 6420434D5343203331-
+    20 0000008C 33206973206D792066-
+    20 00000095 61766F726974652063-
+    20 0000009E 6C6173732061742055-
+    20 000000A7 4D4243210A00       
+    21 000000AD 506C6561736520656E-     choose_str:	db	"Please enter the number of the string you would like to work with:", 10, 0
+    21 000000B6 74657220746865206E-
+    21 000000BF 756D626572206F6620-
+    21 000000C8 74686520737472696E-
+    21 000000D1 6720796F7520776F75-
+    21 000000DA 6C64206C696B652074-
+    21 000000E3 6F20776F726B207769-
+    21 000000EC 74683A0A00         
+    22                                  
+    23                                  	section .bss 		; Uninitialized data
+    24                                  
+    25 00000000 <res 50h>               array:		resq	10	; Array of strings (10 quadwords for 10 char pointers)
+    26 00000050 ????                    selection:	resb	2	; Will contain the user input character (two bytes for character + new line)
+    27                                  	
+    28                                  	section .text		; Actual code for instructions
+    29                                  	global main
+    30                                  
+    31                                  display_menu:			; Subroutine to display the menu
+    32 00000000 48BF-                   	mov     rdi, menu_choices	
+    32 00000002 [0000000000000000] 
+    33 0000000A 4831C0                  	xor     rax, rax
+    34 0000000D E8(00000000)            	call    printf		
+    35 00000012 C3                      	ret
+    36                                  
+    37                                  main:
+    38 00000013 4D31C0                  	xor	r8, r8		; Set r8 to 0 which will be used as a counter
+    39                                  
+    40                                  init:				; Loop to set up the initial array of messages
+    41 00000016 49C780[00000000]-       	mov	qword[array+r8], og_msg	
+    41 0000001D [68000000]         
+    42 00000021 4983C008                	add	r8, 8		
+    43 00000025 4983F850                	cmp	r8, 80
+    44 00000029 7CEB                    	jl	init
+    45                                  
+    46                                  menu:				; Prints out the menu prompt and asks for user input
+    47 0000002B E8D0FFFFFF              	call 	display_menu	; Printing out menu prompt
+    48                                  
+    49 00000030 B800000000              	mov	rax, 0		; Reading in user input
+    50 00000035 BF00000000              	mov	rdi, 0
+    51 0000003A 48BE-                   	mov     rsi, selection
+    51 0000003C [5000000000000000] 
+    52 00000044 BA02000000              	mov     rdx, 2
+    53 00000049 0F05                    	syscall
+    54                                  
+    55 0000004B 4D31C0                  	xor	r8, r8		 ; Making sure r8 is 0
+    56 0000004E 448A0425[50000000]      	mov	r8b, [selection] ; r8 stores the ASCII
+    57                                  
+    58 00000056 4983F865                	cmp	r8, 101		; Exit if the user typed in "e" or "E"
+    59 0000005A 0F8408010000            	je	exit		
+    60 00000060 4983F845                	cmp	r8, 69
+    61 00000064 0F84FE000000            	je	exit
+    62                                  
+    63 0000006A 4983F864                	cmp 	r8, 100		; Check if the user typed in "d" or "D"
+    64 0000006E 7412                    	je	choice_d
+    65 00000070 4983F844                	cmp	r8, 68
+    66 00000074 740C                    	je	choice_d
+    67                                  
+    68 00000076 4983F874                	cmp	r8, 116		; Check if the user typed in "t" or "T"
+    69 0000007A 7417                    	je	choice_t
+    70 0000007C 4983F854                	cmp	r8, 84
+    71 00000080 7411                    	je	choice_t
+    72                                  
+    73                                  choice_d:			; Display when "d" or "D"
+    74 00000082 48BF-                   	mov	rdi, array
+    74 00000084 [0000000000000000] 
+    75 0000008C E8(00000000)            	call	display		; Display the contents of the array
+    76 00000091 EB98                    	jmp	menu		; Jump back to the menu prompt
+    77                                  
+    78                                  choice_t:			; Transform when "t" or T
+    79 00000093 48BF-                   	mov	rdi, choose_str	; Asks the user to choose a string
+    79 00000095 [AD00000000000000] 
+    80 0000009D 4831C0                  	xor	rax, rax
+    81 000000A0 E8(00000000)            	call 	printf		
+    82                                  
+    83 000000A5 B800000000              	mov	rax, 0		; User inputs number
+    84 000000AA BF00000000              	mov	rdi, 0
+    85 000000AF 48BE-                   	mov	rsi, selection
+    85 000000B1 [5000000000000000] 
+    86 000000B9 BA02000000              	mov	rdx, 2
+    87 000000BE 0F05                    	syscall			
+    88                                  
+    89 000000C0 4D31C0                  	xor	r8, r8		; Converting the ASCII value
+    90 000000C3 448A0425[50000000]      	mov	r8b, [selection]
+    91 000000CB 4983E830                	sub	r8, 48
+    92                                  
+    93 000000CF 4150                    	push	r8
+    94                                  	
+    95 000000D1 488B3C25[00000000]      	mov	rdi, [array]
+    96 000000D9 E8(00000000)            	call	stringLength
+    97 000000DE 4989C7                  	mov	r15, rax
+    98                                  
+    99 000000E1 4158                    	pop	r8
+   100                                  	
+   101 000000E3 4150                    	push	r8
+   102 000000E5 4157                    	push	r15
+   103                                  	
+   104 000000E7 E8(00000000)            	call	randomNumber	; Calls a function from the c file and stores the result in rax
+   105                                  
+   106 000000EC 415F                    	pop	r15		; r15 has the string length
+   107 000000EE 4158                    	pop	r8		; r8 has the string number
+   108                                  
+   109 000000F0 4D31C9                  	xor	r9, r9		; Set r9 to 0
+   110 000000F3 4983F800                	cmp	r8, 0		; If r8 is 0
+   111 000000F7 740D                    	je	getString	; Jump and skip the loop
+   112                                  	
+   113                                  loop:
+   114 000000F9 4983C108                	add	r9, 8
+   115 000000FD 49FFC8                  	dec	r8
+   116 00000100 4983F800                	cmp	r8, 0
+   117 00000104 75F3                    	jne	loop
+   118                                  
+   119                                  getString:
+   120 00000106 498B89[00000000]        	mov	rcx, qword[array+r9] ; Sets rcx to the character pointer
+   121                                  	
+   122 0000010D 4889CE                  	mov	rsi, rcx
+   123 00000110 BA44000000              	mov	rdx, 68
+   124 00000115 B801000000              	mov	rax, 1
+   125 0000011A BF01000000              	mov	rdi, 1
+   126 0000011F 0F05                    	syscall
+   127                                  
+   128 00000121 4989C8                  	mov	r8, rcx
+   129 00000124 4D31D2                  	xor	r10, r10
+   130 00000127 458A10                  	mov	r10b, [r8]
+   131                                  
+   132 0000012A 4989C8                  	mov	r8, rcx
+   133 0000012D 4C89C6                  	mov	rsi, r8
+   134 00000130 BA44000000              	mov	rdx, 68
+   135 00000135 B801000000              	mov 	rax, 1
+   136 0000013A BA01000000              	mov	rdx, 1
+   137 0000013F 0F05                    	syscall
+   138                                  
+   139                                  	
+   140                                  test:	
+   141 00000141 4831D2                  	xor	rdx, rdx	; Set rdx before division
+   142 00000144 BB02000000              	mov	rbx, 2		; Denominator rbx = 2
+   143 00000149 48F7F3                  	div	rbx		; rax = rax / 2 and rdx = remainder
+   144                                  			
+   145 0000014C 4883FA00                	cmp	rdx, 0		; Check if even
+   146 00000150 7402                    	je	func_reverseHalves	; If even jump to reverseHalves 
+   147 00000152 EB0A                    	jmp	func_scramble	; Else jump to scrample
+   148                                  
+   149                                  func_reverseHalves:	
+   150 00000154 E8(00000000)            	call	reverseHalves
+   151 00000159 E9CDFEFFFF              	jmp	menu
+   152                                  
+   153                                  func_scramble:	
+   154 0000015E E8(00000000)            	call	reverseHalves
+   155 00000163 E9C3FEFFFF              	jmp	menu
+   156                                  	
+   157                                  exit:
+   158 00000168 B83C000000              	mov	rax, 60		; Exit statement
+   159 0000016D 4831FF                  	xor	rdi, rdi
+   160 00000170 0F05                    	syscall
+   161                                  
+   162                                  

@@ -1,0 +1,351 @@
+     1                                  ; Hamin Han, XK26538, haminh1@gl.umbc.edu
+     2                                  ; Main assembly file that calls the subroutines
+     3                                  ; The program first displays a menu with the options that the user can choose
+     4                                  ; "d" or "D" shows the current 10 messages to the user (initially set to "I love assembly language and CMSC 313 is my favorite class at UMBC!"
+     5                                  ; "u" or "U" gets a new message from the user and replaces a message from the array
+     6                                  ; "f" or "F" replaces a string sequence from one of the messages
+     7                                  ; "t" or "T" does a random transformation on the text, either reverseHalves or scramble
+     8                                  ; "e" or "E" exits the program
+     9                                  
+    10                                  extern scanf
+    11                                  extern printf	
+    12                                  extern display
+    13                                  extern randomNumber
+    14                                  extern stringLength
+    15                                  extern reverseHalves
+    16                                  extern scramble
+    17                                  extern easterEgg
+    18                                  extern validate
+    19                                  extern checkMsg
+    20                                  extern update
+    21                                  extern findReplace
+    22                                  extern freeUp
+    23                                  	
+    24                                  	section .data		; Initialized data
+    25                                  
+    26 00000000 642F443A2044697370-     menu_choices:	db 	"d/D: Display", 10, "u/U: Update", 10, "f/F: Find & Replace", 10, "t/T: Transform", 10, "e/E: Exit", 10, "-------------", 10, "Enter your choice:", 10, 0 ; Menu prompt
+    26 00000009 6C61790A752F553A20-
+    26 00000012 5570646174650A662F-
+    26 0000001B 463A2046696E642026-
+    26 00000024 205265706C6163650A-
+    26 0000002D 742F543A205472616E-
+    26 00000036 73666F726D0A652F45-
+    26 0000003F 3A20457869740A2D2D-
+    26 00000048 2D2D2D2D2D2D2D2D2D-
+    26 00000051 2D2D0A456E74657220-
+    26 0000005A 796F75722063686F69-
+    26 00000063 63653A0A00         
+    27 00000068 49206C6F7665206173-     og_msg:		db 	"I love assembly language and CMSC 313 is my favorite class at UMBC!", 0 ; Initial message that will be stored in the array
+    27 00000071 73656D626C79206C61-
+    27 0000007A 6E677561676520616E-
+    27 00000083 6420434D5343203331-
+    27 0000008C 33206973206D792066-
+    27 00000095 61766F726974652063-
+    27 0000009E 6C6173732061742055-
+    27 000000A7 4D42432100         
+    28 000000AC 506C6561736520656E-     choose_str:	db	"Please enter the number of the string you would like to work with:", 10, 0
+    28 000000B5 74657220746865206E-
+    28 000000BE 756D626572206F6620-
+    28 000000C7 74686520737472696E-
+    28 000000D0 6720796F7520776F75-
+    28 000000D9 6C64206C696B652074-
+    28 000000E2 6F20776F726B207769-
+    28 000000EB 74683A0A00         
+    29 000000F0 44                      len_choose:	db 	$-choose_str
+    30                                  	
+    31 000000F1 506C6561736520656E-     find_msg:	db 	"Please enter the character sequence to find: ", 10, 0
+    31 000000FA 746572207468652063-
+    31 00000103 686172616374657220-
+    31 0000010C 73657175656E636520-
+    31 00000115 746F2066696E643A20-
+    31 0000011E 0A00               
+    32 00000120 506C6561736520656E-     replace_msg:	db	"Please enter the replacement sequence: ", 10, 0
+    32 00000129 746572207468652072-
+    32 00000132 65706C6163656D656E-
+    32 0000013B 742073657175656E63-
+    32 00000144 653A200A00         
+    33 00000149 546865206E65772074-     newtxt_msg:	db	"The new text is: ", 0
+    33 00000152 6578742069733A2000 
+    34                                  	
+    35 0000015B 506C6561736520656E-     enter_msg:	db	"Please enter the text:", 10, 0
+    35 00000164 746572207468652074-
+    35 0000016D 6578743A0A00       
+    36 00000173 696E76616C6964206D-     invalid_msg:	db	"invalid message, keeping current", 10, 10, 0
+    36 0000017C 6573736167652C206B-
+    36 00000185 656570696E67206375-
+    36 0000018E 7272656E740A0A00   
+    37                                  	
+    38 00000196 496E76616C6964206F-     invalid_choice:	db	"Invalid option! Try again!", 10, 0
+    38 0000019F 7074696F6E21205472-
+    38 000001A8 7920616761696E210A-
+    38 000001B1 00                 
+    39                                  	
+    40 000001B2 546865207465787420-     reverse_str:	db	"The text is reverse-halved as: ", 0
+    40 000001BB 697320726576657273-
+    40 000001C4 652D68616C76656420-
+    40 000001CD 61733A2000         
+    41                                  len_reverse:	equ	$-reverse_str
+    42                                  
+    43 000001D2 546865207465787420-     scramble_str:	db	"The text is scrambled as: ", 0
+    43 000001DB 697320736372616D62-
+    43 000001E4 6C65642061733A2000 
+    44                                  len_scramble:	equ	$-scramble_str
+    45                                  
+    46 000001ED 0A00                    new_line:	db	10, 0
+    47                                  	
+    48                                  	section .bss 		; Uninitialized data
+    49                                  
+    50 00000000 <res 50h>               array:		resq	10	; Array of strings (10 quadwords for 10 char pointers)
+    51 00000050 ????                    selection:	resb	2	; Will contain the user input character (two bytes for character + new line)
+    52                                  	
+    53                                  	section .text		; Actual code for instructions
+    54                                  	global main
+    55                                  	
+    56                                  main:
+    57 00000000 4831C0                  	xor	rax, rax
+    58 00000003 50                      	push	rax
+    59 00000004 4D31C0                  	xor	r8, r8		; Set r8 to 0 which will be used as a counter
+    60                                  
+    61                                  init:				; Loop to set up the initial array of messages
+    62 00000007 49C780[00000000]-       	mov	qword[array+r8], og_msg	
+    62 0000000E [68000000]         
+    63 00000012 4983C008                	add	r8, 8		
+    64 00000016 4983F850                	cmp	r8, 80
+    65 0000001A 7CEB                    	jl	init
+    66                                  
+    67                                  menu:				; Prints out the menu prompt and asks for user input
+    68 0000001C 48BF-                   	mov	rdi, menu_choices ; Printing out menu prompt
+    68 0000001E [0000000000000000] 
+    69 00000026 4831C0                  	xor	rax, rax	
+    70 00000029 E8(00000000)            	call 	printf
+    71                                  	
+    72 0000002E B800000000              	mov	rax, 0		; Reading in user input
+    73 00000033 BF00000000              	mov	rdi, 0
+    74 00000038 48BE-                   	mov     rsi, selection
+    74 0000003A [5000000000000000] 
+    75 00000042 BA02000000              	mov     rdx, 2
+    76 00000047 0F05                    	syscall
+    77                                  
+    78 00000049 4D31C0                  	xor	r8, r8		 ; r8 stores the value of user input
+    79 0000004C 448A0425[50000000]      	mov	r8b, [selection] 
+    80                                  
+    81 00000054 4983F865                	cmp	r8, 101		; Exit if the user typed in "e" or "E"
+    82 00000058 0F847F020000            	je	exit		
+    83 0000005E 4983F845                	cmp	r8, 69
+    84 00000062 0F8475020000            	je	exit
+    85                                  
+    86 00000068 4983F864                	cmp 	r8, 100		; Check if the user typed in "d" or "D"
+    87 0000006C 7460                    	je	choice_d
+    88 0000006E 4983F844                	cmp	r8, 68
+    89 00000072 745A                    	je	choice_d
+    90                                  
+    91 00000074 4983F875                	cmp	r8, 117		; Check if the user typed in "u" or"U"
+    92 00000078 7468                    	je	choice_u
+    93 0000007A 4983F855                	cmp	r8, 85
+    94 0000007E 7462                    	je	choice_u
+    95                                  
+    96 00000080 4983F866                	cmp	r8, 102		; Check if the user typed in "f" or "F"
+    97 00000084 0F84B4000000            	je	choice_f
+    98 0000008A 4983F846                	cmp	r8, 70
+    99 0000008E 0F84AA000000            	je	choice_f
+   100                                  	
+   101 00000094 4983F874                	cmp	r8, 116		; Check if the user typed in "t" or "T"
+   102 00000098 0F843B010000            	je	choice_t
+   103 0000009E 4983F854                	cmp	r8, 84
+   104 000000A2 0F8431010000            	je	choice_t
+   105                                  
+   106 000000A8 4983F863                	cmp	r8, 99		; Easter egg if the user typed in "c"
+   107 000000AC 0F8405020000            	je	choice_c
+   108                                  	
+   109                                  no_choice:			; Display when user puts in an invalid option
+   110 000000B2 48BF-                   	mov	rdi, invalid_choice
+   110 000000B4 [9601000000000000] 
+   111 000000BC 4831C0                  	xor	rax, rax
+   112 000000BF E8(00000000)            	call	printf
+   113 000000C4 E8F8010000              	call	printNewline
+   114 000000C9 E94EFFFFFF              	jmp 	menu
+   115                                  	
+   116                                  choice_d:			; Display when "d" or "D"
+   117 000000CE 48BF-                   	mov	rdi, array
+   117 000000D0 [0000000000000000] 
+   118 000000D8 E8(00000000)            	call	display		; Display the contents of the array
+   119 000000DD E93AFFFFFF              	jmp	menu		; Jump back to the menu prompt
+   120                                  
+   121                                  choice_u:			; Update when "u" or "U"
+   122 000000E2 48BF-                   	mov	rdi, enter_msg	; Asks for user input
+   122 000000E4 [5B01000000000000] 
+   123 000000EC 4831C0                  	xor	rax, rax
+   124 000000EF E8(00000000)            	call 	printf
+   125                                  
+   126 000000F4 E8(00000000)            	call	validate	; Gets user input
+   127 000000F9 4889C7                  	mov	rdi, rax
+   128 000000FC 4989C2                  	mov	r10, rax
+   129 000000FF 4152                    	push	r10
+   130 00000101 E8(00000000)            	call	checkMsg	; Check if the messgae is valid
+   131                                  
+   132 00000106 4883F801                	cmp	rax, 1		; If valid, jump to valid
+   133 0000010A 7418                    	je	valid
+   134                                  
+   135 0000010C 48BF-                   	mov	rdi, invalid_msg ; Else tell the user that the input is invalid and jump back to menu
+   135 0000010E [7301000000000000] 
+   136 00000116 58                      	pop	rax
+   137 00000117 4831C0                  	xor	rax, rax
+   138 0000011A E8(00000000)            	call	printf
+   139 0000011F E9F8FEFFFF              	jmp 	menu
+   140                                  	
+   141                                  valid:
+   142 00000124 48BF-                   	mov 	rdi, array	; rdi: first parameter char *arr[] is array
+   142 00000126 [0000000000000000] 
+   143 0000012E 5E                      	pop	rsi		; rsi: second parameter char * msg is the result from validate
+   144 0000012F E8(00000000)            	call	update		; Calls the update function to update the array with the new string
+   145 00000134 E888010000              	call	printNewline
+   146 00000139 E9DEFEFFFF              	jmp	menu
+   147                                  
+   148                                  choice_f:			; Find and replace when "f" or "F"
+   149 0000013E 48BF-                   	mov	rdi, choose_str	; Asks the user to choose a string
+   149 00000140 [AC00000000000000] 
+   150 00000148 4831C0                  	xor	rax, rax
+   151 0000014B E8(00000000)            	call	printf
+   152                                  
+   153 00000150 B800000000              	mov     rax, 0		; User inputs number
+   154 00000155 BF00000000              	mov     rdi, 0
+   155 0000015A 48BE-                   	mov     rsi, selection
+   155 0000015C [5000000000000000] 
+   156 00000164 BA02000000              	mov     rdx, 2
+   157 00000169 0F05                    	syscall
+   158                                  
+   159 0000016B 4D31E4                  	xor     r12, r12 	; r12 has the value of user input
+   160 0000016E 448A2425[50000000]      	mov     r12b, [selection]
+   161 00000176 4983EC30                	sub     r12, 48
+   162                                  
+   163 0000017A 4D31C9                  	xor     r9, r9		; Set r9 to 0
+   164 0000017D 4983FC00                	cmp     r12, 0		; If r12 is 0
+   165 00000181 740D                    	je      setString 	; Jump and skip the loop
+   166                                  add:
+   167 00000183 4983C108                	add     r9, 8		; Multiplies the user input number by 8
+   168 00000187 49FFCC                  	dec     r12		; This number is added to the array address to point at the wanted element
+   169 0000018A 4983FC00                	cmp     r12, 0
+   170 0000018E 75F3                    	jne     add
+   171                                  
+   172                                  setString:
+   173 00000190 498BB9[00000000]        	mov     rdi, qword[array+r9] ; Sets rdi to the character pointer
+   174 00000197 57                      	push	rdi
+   175                                  
+   176                                  getSequence:
+   177 00000198 48BF-                   	mov	rdi, find_msg	; Ask the user to enter the character sequence
+   177 0000019A [F100000000000000] 
+   178 000001A2 4831C0                  	xor	rax, rax
+   179 000001A5 E8(00000000)            	call	printf
+   180 000001AA E8(00000000)            	call	validate
+   181 000001AF 4889C6                  	mov	rsi, rax
+   182 000001B2 56                      	push 	rsi
+   183                                  
+   184                                  getReplacement:
+   185 000001B3 48BF-                   	mov	rdi, replace_msg ; Ask the user to enter the replacement characters
+   185 000001B5 [2001000000000000] 
+   186 000001BD 4831C0                  	xor	rax, rax
+   187 000001C0 E8(00000000)            	call	printf
+   188 000001C5 E8(00000000)            	call	validate
+   189 000001CA 4889C2                  	mov	rdx, rax
+   190                                  	
+   191 000001CD 5E                      	pop	rsi
+   192 000001CE 5F                      	pop	rdi
+   193 000001CF E8(00000000)            	call	findReplace	; Calls replace function with the parameters: main_str in rdi, sequecne in rsi, and replacement in rdx
+   194 000001D4 E943FEFFFF              	jmp 	menu
+   195                                  	
+   196                                  choice_t:			; Transform when "t" or "T"
+   197 000001D9 48BF-                   	mov	rdi, choose_str	; Asks the user to choose a string
+   197 000001DB [AC00000000000000] 
+   198 000001E3 4831C0                  	xor	rax, rax
+   199 000001E6 E8(00000000)            	call	printf
+   200                                  
+   201 000001EB B800000000              	mov	rax, 0		; User inputs number
+   202 000001F0 BF00000000              	mov	rdi, 0
+   203 000001F5 48BE-                   	mov	rsi, selection
+   203 000001F7 [5000000000000000] 
+   204 000001FF BA02000000              	mov	rdx, 2
+   205 00000204 0F05                    	syscall			
+   206                                  
+   207 00000206 4D31E4                  	xor	r12, r12	; r12 has the value of user input
+   208 00000209 448A2425[50000000]      	mov	r12b, [selection]
+   209 00000211 4983EC30                	sub	r12, 48
+   210                                  	
+   211 00000215 4D31C9                  	xor	r9, r9		; Set r9 to 0
+   212 00000218 4983FC00                	cmp	r12, 0		; If r12 is 0
+   213 0000021C 740D                    	je	setParameters	; Jump and skip the loop
+   214                                  loop:
+   215 0000021E 4983C108                	add	r9, 8		; Multiplies the user input number by 8 
+   216 00000222 49FFCC                  	dec	r12		; This number is added to the array address to point at the wanted element
+   217 00000225 4983FC00                	cmp	r12, 0
+   218 00000229 75F3                    	jne	loop
+   219                                  
+   220                                  setParameters:
+   221 0000022B 498BB9[00000000]        	mov	rdi, qword[array+r9] ; Sets rdi to the character pointer
+   222 00000232 4989FC                  	mov	r12, rdi
+   223 00000235 4154                    	push	r12		     ; Push r12/rdi (the string) on the stack
+   224 00000237 E8(00000000)            	call	stringLength	     ; Ask for length of string
+   225 0000023C 50                      	push 	rax	             ; Push rax/rsi (length of string) on the stack
+   226                                  
+   227 0000023D E8(00000000)            	call	randomNumber
+   228 00000242 4831D2                  	xor	rdx, rdx	; Set rdx before division
+   229 00000245 BB02000000              	mov	rbx, 2		; Denominator rbx = 2
+   230 0000024A 48F7F3                  	div	rbx		; rax = rax / 2 and rdx = remainder
+   231                                  			
+   232 0000024D 4883FA00                	cmp	rdx, 0			; Check if even
+   233 00000251 7402                    	je	func_reverseHalves	; If even jump to reverseHalves 
+   234 00000253 EB31                    	jmp	func_scramble		; Else jump to scrample
+   235                                  
+   236                                  func_reverseHalves:		; Calls reverseHalves.asm
+   237 00000255 48BE-                   	mov	rsi, reverse_str 
+   237 00000257 [B201000000000000] 
+   238 0000025F BA20000000              	mov	rdx, len_reverse
+   239 00000264 B801000000              	mov	rax, 1
+   240 00000269 BF01000000              	mov	rdi, 1
+   241 0000026E 0F05                    	syscall
+   242                                  
+   243 00000270 5E                      	pop	rsi
+   244 00000271 5F                      	pop 	rdi
+   245 00000272 E8(00000000)            	call	reverseHalves
+   246 00000277 E845000000              	call	printNewline
+   247 0000027C E840000000              	call	printNewline
+   248 00000281 E996FDFFFF              	jmp	menu
+   249                                  
+   250                                  func_scramble:			; Calls scramble.asm
+   251 00000286 48BE-                   	mov	rsi, scramble_str
+   251 00000288 [D201000000000000] 
+   252 00000290 BA1B000000              	mov	rdx, len_scramble
+   253 00000295 B801000000              	mov	rax, 1
+   254 0000029A BF01000000              	mov	rdi, 1
+   255 0000029F 0F05                    	syscall
+   256                                  
+   257 000002A1 5E                      	pop	rsi
+   258 000002A2 5F                      	pop	rdi
+   259 000002A3 E8(00000000)            	call	scramble
+   260 000002A8 E814000000              	call 	printNewline
+   261 000002AD E80F000000              	call	printNewline
+   262 000002B2 E965FDFFFF              	jmp	menu
+   263                                  
+   264                                  choice_c:			; Easter Egg when "c" 4 times
+   265 000002B7 E8(00000000)            	call 	easterEgg
+   266 000002BC E95BFDFFFF              	jmp	menu
+   267                                  	
+   268                                  printNewline:			; Subroutine to print new line
+   269 000002C1 48BE-                   	mov 	rsi, new_line
+   269 000002C3 [ED01000000000000] 
+   270 000002CB BA02000000              	mov	rdx, 2
+   271 000002D0 B801000000              	mov	rax, 1
+   272 000002D5 BF01000000              	mov	rdi, 1
+   273 000002DA 0F05                    	syscall
+   274 000002DC C3                      	ret
+   275                                  	
+   276                                  exit:
+   277                                  	; call	freeUP Free up memory
+   278 000002DD 48BF-                   	mov	rdi, array
+   278 000002DF [0000000000000000] 
+   279 000002E7 E8(00000000)            	call	freeUp
+   280                                  	
+   281 000002EC B83C000000              	mov	rax, 60		; Exit statement
+   282 000002F1 4831FF                  	xor	rdi, rdi
+   283 000002F4 0F05                    	syscall
+   284                                  
+   285                                  
